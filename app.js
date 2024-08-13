@@ -1,21 +1,35 @@
 const express = require('express');
-const connectDB = require('./config/db');
-
-const authRoutes = require('./routes/authRoutes');
-const userRoutes = require('./routes/userRoutes');
-
 const app = express();
+const port = 3000;
+const getConnection = require('./db-config');
 
-require('dotenv').config();
+// Set EJS as templating engine
+app.set('view engine', 'ejs');
+app.use(express.static('public'));
 
-app.use(express.json());
+// Home route to test the database connection
+app.get('/', (req, res) => {
+  const db = getConnection();
+  db.connect((err) => {
+    if (err) {
+      console.error('Error connecting to the database:', err.stack);
+      res.render('index', { status: 'Error connecting to the database: ' + err.stack });
+      return;
+    }
 
-connectDB();
+    db.query('SELECT 1 + 1 AS solution', (err, results) => {
+      db.end(); // Close the connection after query
+      if (err) {
+        console.error('Error querying the database:', err.stack);
+        res.render('index', { status: 'Error querying the database: ' + err.stack });
+        return;
+      }
 
-app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
+      res.render('index', { status: 'The solution is: ' + results[0].solution });
+    });
+  });
+});
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+app.listen(port, () => {
+  console.log(`App listening at http://localhost:${port}`);
 });
